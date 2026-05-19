@@ -48,7 +48,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: pharma-service
-          image: 516209541629.dkr.ecr.us-east-1.amazonaws.com/api-gateway:sha-ef1ccc7
+          image: 004246189893.dkr.ecr.us-east-1.amazonaws.com/api-gateway:sha-ef1ccc7
           imagePullPolicy: Always
           ports:
             - name: http
