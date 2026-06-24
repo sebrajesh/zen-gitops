@@ -12,6 +12,56 @@ ArgoCD watches this repo and syncs all changes to the EKS cluster automatically.
 
 ---
 
+## After Forking — Required Personalisation
+
+Before ArgoCD can sync anything, you must replace two AWS-specific values that are hardcoded to the instructor's account throughout `envs/dev/*.yaml`.
+
+### 1. AWS Account ID
+
+Every `image.repository` field and the IAM role ARN in `values-api-gateway.yaml` contain the instructor's account ID (`516209541629`). Replace it with your own.
+
+Find your account ID:
+```bash
+aws sts get-caller-identity --query Account --output text
+```
+
+Do the replacement (run from repo root):
+```bash
+# Replace YOUR_ACCOUNT_ID with the value from the command above
+find envs/ -name "*.yaml" -exec sed -i '' 's/516209541629/YOUR_ACCOUNT_ID/g' {} +
+```
+
+After this, every `image.repository` will point to your ECR registry, e.g.:
+```yaml
+image:
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/auth-service
+```
+
+### 2. RDS Endpoint
+
+Every `DB_HOST` env var contains the instructor's RDS instance identifier (`cyrywaguk6v4`). Replace it with your own RDS instance identifier (the subdomain prefix in the endpoint shown in AWS Console → RDS → your instance).
+
+```bash
+# Replace YOUR_RDS_ID with your RDS instance identifier (e.g. abcd1234efgh)
+find envs/ -name "*.yaml" -exec sed -i '' 's/cyrywaguk6v4/YOUR_RDS_ID/g' {} +
+```
+
+After this, `DB_HOST` will look like:
+```yaml
+DB_HOST: pharma-dev-postgres.abcd1234efgh.us-east-1.rds.amazonaws.com
+```
+
+### 3. Verify
+
+```bash
+# Should show only YOUR account ID and RDS ID — no instructor values
+grep -r "516209541629\|cyrywaguk6v4" envs/
+```
+
+Commit and push these changes. CI will then update image tags to your ECR images on every backend build, and ArgoCD syncs will no longer fail with `ImagePullBackOff`.
+
+---
+
 ## What Lives Here
 
 | Folder | Purpose |
@@ -142,9 +192,11 @@ git push
 
 | Setting | dev | qa | prod |
 |---|---|---|---|
-| `replicaCount` | 1 | 1 | 2 |
+| `replicaCount` | 1 | 1 | HPA-managed (min 2) |
 | `autoscaling.minReplicas` | disabled | 1 | 2 |
 | `autoscaling.maxReplicas` | disabled | 3 | 5 |
+| `podDisruptionBudget` | disabled | disabled | enabled (`minAvailable: 1`) |
+| `networkPolicy` | disabled | disabled | enabled (ingress from NGINX or api-gateway) |
 | `LOG_LEVEL` | DEBUG | INFO | WARN |
 | `podAntiAffinity` | no | no | yes (pods spread across nodes) |
 | CPU request/limit | 100m / 500m | 150m / 500m | 250m / 1000m |

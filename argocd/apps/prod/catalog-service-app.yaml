@@ -13,7 +13,7 @@ spec:
   project: pharma
 
   source:
-    repoURL: https://github.com/ravdy/zen-gitops.git
+    repoURL: https://github.com/DPP-2026/zen-gitops.git
     targetRevision: HEAD
     path: helm-charts
     helm:
@@ -39,5 +39,11 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
 
   revisionHistoryLimit: 10
